@@ -1,0 +1,1963 @@
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import {
+  Flame, Utensils, Activity, Plus, Trash2, Search, Settings,
+  ChevronRight, ChevronLeft, RefreshCw, CheckCircle2, Info, Scale,
+  Coffee, Sun, Moon, Apple, Sparkles, BookOpen, Calculator, X,
+  Globe, Barcode, Database, Loader2, Bookmark, BookmarkCheck, AlertCircle,
+  Cloud, CloudOff, HardDrive, Download, Upload, ShieldCheck, Smartphone,
+  Calendar, Share2, Check, Key, Server, FileDown, HelpCircle
+} from 'lucide-react';
+
+// ============================================================================
+// DATABASE MINIMO ALIMENTI FRESCHI / MATERIE PRIME (Senza codice a barre)
+// ============================================================================
+const FRESH_BASE_FOODS = [
+  { id: 'f1', name: 'Petto di pollo (crudo)', category: 'Proteine Fresche', kcal: 110, p: 23.1, c: 0, f: 1.2 },
+  { id: 'f2', name: 'Petto di tacchino (crudo)', category: 'Proteine Fresche', kcal: 107, p: 24.0, c: 0, f: 1.0 },
+  { id: 'f3', name: 'Filetto di manzo magro', category: 'Proteine Fresche', kcal: 127, p: 21.5, c: 0, f: 4.0 },
+  { id: 'f4', name: 'Macinato di manzo magro (5%)', category: 'Proteine Fresche', kcal: 137, p: 21.4, c: 0, f: 5.0 },
+  { id: 'f5', name: 'Salmone fresco', category: 'Proteine Fresche', kcal: 208, p: 20.4, c: 0, f: 13.4 },
+  { id: 'f6', name: 'Merluzzo / Nasello fresco', category: 'Proteine Fresche', kcal: 82, p: 17.8, c: 0, f: 0.7 },
+  { id: 'f7', name: 'Uovo intero medio (1 uovo ≈ 60g)', category: 'Proteine Fresche', kcal: 143, p: 12.6, c: 0.7, f: 9.5 },
+  { id: 'f8', name: 'Albume d\'uovo', category: 'Proteine Fresche', kcal: 52, p: 10.9, c: 0.7, f: 0.2 },
+  { id: 'f9', name: 'Bresaola della Valtellina', category: 'Proteine Fresche', kcal: 151, p: 32.0, c: 0, f: 2.6 },
+  { id: 'f10', name: 'Prosciutto crudo sgrassato', category: 'Proteine Fresche', kcal: 159, p: 28.0, c: 0, f: 4.5 },
+  { id: 'f11', name: 'Speck Alto Adige IGP', category: 'Proteine Fresche', kcal: 300, p: 30.7, c: 1.0, f: 19.1 },
+  { id: 'f12', name: 'Riso Basmati / Carnaroli (crudo)', category: 'Carboidrati Base', kcal: 350, p: 7.5, c: 78.0, f: 0.6 },
+  { id: 'f13', name: 'Pasta di semola (cruda)', category: 'Carboidrati Base', kcal: 353, p: 13.0, c: 72.0, f: 1.5 },
+  { id: 'f14', name: 'Fiocchi d\'avena (sfusi)', category: 'Carboidrati Base', kcal: 373, p: 13.5, c: 58.7, f: 7.0 },
+  { id: 'f15', name: 'Patate fresche (crude)', category: 'Carboidrati Base', kcal: 77, p: 2.0, c: 17.5, f: 0.1 },
+  { id: 'f16', name: 'Patate dolci / Americane', category: 'Carboidrati Base', kcal: 86, p: 1.6, c: 20.1, f: 0.1 },
+  { id: 'f17', name: 'Pane integrale di segale (Vinschgerl)', category: 'Carboidrati Base', kcal: 245, p: 8.5, c: 46.0, f: 1.8 },
+  { id: 'f18', name: 'Olio Extravergine d\'Oliva (EVO)', category: 'Grassi & Frutta Secca', kcal: 899, p: 0, c: 0, f: 99.9 },
+  { id: 'f19', name: 'Mandorle sgusciate', category: 'Grassi & Frutta Secca', kcal: 579, p: 21.2, c: 21.6, f: 49.9 },
+  { id: 'f20', name: 'Noci sgusciate', category: 'Grassi & Frutta Secca', kcal: 654, p: 15.2, c: 13.7, f: 65.2 },
+  { id: 'f21', name: 'Avocado fresco', category: 'Grassi & Frutta Secca', kcal: 160, p: 2.0, c: 8.5, f: 14.7 },
+  { id: 'f22', name: 'Burro di arachidi 100%', category: 'Grassi & Frutta Secca', kcal: 588, p: 25.8, c: 16.0, f: 50.0 },
+  { id: 'f23', name: 'Mela dell\'Alto Adige', category: 'Frutta & Verdura', kcal: 52, p: 0.3, c: 13.8, f: 0.2 },
+  { id: 'f24', name: 'Banana (sbucciata)', category: 'Frutta & Verdura', kcal: 89, p: 1.1, c: 22.8, f: 0.3 },
+  { id: 'f25', name: 'Fragole / Frutti di bosco', category: 'Frutta & Verdura', kcal: 32, p: 0.7, c: 7.7, f: 0.3 },
+  { id: 'f26', name: 'Zucchine / Verdure grigliate', category: 'Frutta & Verdura', kcal: 17, p: 1.2, c: 3.1, f: 0.3 },
+  { id: 'f27', name: 'Insalata mista / Spinaci', category: 'Frutta & Verdura', kcal: 20, p: 1.8, c: 3.0, f: 0.3 }
+];
+
+const ACTIVITY_LEVELS = [
+  { value: 1.2, label: 'Sedentario', desc: 'Lavoro da scrivania, poco o nessun esercizio' },
+  { value: 1.375, label: 'Leggermente Attivo', desc: 'Allenamento leggero 1-3 giorni/settimana' },
+  { value: 1.55, label: 'Moderatamente Attivo', desc: 'Allenamento moderato 3-5 giorni/settimana' },
+  { value: 1.725, label: 'Molto Attivo', desc: 'Allenamento intenso 6-7 giorni/settimana' },
+  { value: 1.9, label: 'Estremamente Attivo', desc: 'Lavoro fisico pesante o doppi allenamenti' },
+];
+
+const GOALS = [
+  { id: 'cut_hard', label: 'Dimagrimento Deciso', modifier: -0.20, desc: '-20% rispetto al TDEE' },
+  { id: 'cut_soft', label: 'Definizione Leggera', modifier: -0.10, desc: '-10% rispetto al TDEE' },
+  { id: 'maint', label: 'Mantenimento', modifier: 0, desc: '100% del TDEE' },
+  { id: 'bulk_lean', label: 'Massa Pulita (Lean Bulk)', modifier: 0.10, desc: '+10% rispetto al TDEE' },
+  { id: 'bulk_hard', label: 'Aumento Massa', modifier: 0.20, desc: '+20% rispetto al TDEE' },
+];
+
+const MEAL_SLOTS = [
+  { id: 'breakfast', label: 'Colazione', icon: Coffee, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  { id: 'lunch', label: 'Pranzo', icon: Sun, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+  { id: 'dinner', label: 'Cena', icon: Moon, color: 'text-indigo-500', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
+  { id: 'snacks', label: 'Spuntini / Pre-Post Workout', icon: Apple, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+];
+
+const EMPTY_DAY_MEALS = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+
+// ============================================================================
+// MOTORE LIVELLO 1: IndexedDB Wrapper + Storage Persistente iOS
+// ============================================================================
+const IDB_NAME = 'MacroCalc_iOS_Vault_v1';
+const IDB_STORE = 'app_state';
+
+function openVaultDB() {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      return reject(new Error('IndexedDB non supportato'));
+    }
+    const req = window.indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveToIDB(key, value) {
+  try {
+    const db = await openVaultDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(value, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+async function loadFromIDB(key) {
+  try {
+    const db = await openVaultDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+// Normalizzatore prodotti OpenFoodFacts
+function normalizeOFFProduct(p) {
+  const n = p.nutriments || {};
+  let kcal = n['energy-kcal_100g'] ?? n['energy-kcal'] ?? null;
+  if (kcal === null && (n['energy-kj_100g'] || n['energy_100g'])) {
+    const kj = n['energy-kj_100g'] || n['energy_100g'];
+    kcal = Math.round(Number(kj) / 4.184);
+  }
+  const protein = Number(n.proteins_100g ?? n.proteins ?? 0);
+  const carbs = Number(n.carbohydrates_100g ?? n.carbohydrates ?? 0);
+  const fat = Number(n.fat_100g ?? n.fat ?? 0);
+  if (kcal === null || isNaN(kcal)) {
+    kcal = Math.round(protein * 4 + carbs * 4 + fat * 9);
+  }
+  const rawName = p.product_name_it || p.product_name || p.generic_name_it || p.generic_name || '';
+  const brand = p.brands ? p.brands.split(',')[0].trim() : '';
+  return {
+    id: `off_${p.code || Math.random().toString(36).slice(2, 9)}`,
+    code: p.code || '',
+    name: rawName.trim(),
+    brand: brand || 'Prodotto Commerciale',
+    category: 'Prodotti Commerciali (Online)',
+    kcal: Math.max(0, Math.round(Number(kcal) || 0)),
+    p: Math.max(0, Number(protein.toFixed(1))),
+    c: Math.max(0, Number(carbs.toFixed(1))),
+    f: Math.max(0, Number(fat.toFixed(1))),
+    image: p.image_front_small_url || p.image_small_url || p.image_thumb_url || null,
+    nutriscore: p.nutriscore_grade ? p.nutriscore_grade.toUpperCase() : null,
+    servingSize: p.serving_size || null,
+    isOnline: true,
+  };
+}
+
+function getTodayISO() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+
+export default function App() {
+  // --- DATA CORRENTE (STORICO GIORNALIERO CALENDARIO) ---
+  const [selectedDate, setSelectedDate] = useState(getTodayISO);
+
+  // --- STATO PROFILO & CALCOLATORE ---
+  const [profile, setProfile] = useState(() => {
+    const saved = localStorage.getItem('mc_ios_profile_v3');
+    return saved ? JSON.parse(saved) : {
+      gender: 'male',
+      age: 28,
+      weight: 75,
+      height: 178,
+      activity: 1.55,
+      goal: 'maint',
+      customKcalDiff: 0,
+      useCustomDiff: false,
+      macroMode: 'pct',
+      pctP: 30,
+      pctC: 45,
+      pctF: 25,
+      gPerKgP: 2.0,
+      gPerKgF: 0.9,
+    };
+  });
+
+  // --- STORICO PASTI PER DATA (es. { "2026-10-19": { breakfast: [...], ... } }) ---
+  const [mealsByDate, setMealsByDate] = useState(() => {
+    const saved = localStorage.getItem('mc_ios_meals_by_date_v3');
+    if (saved) return JSON.parse(saved);
+    return {
+      [getTodayISO()]: {
+        breakfast: [
+          { uid: 'init-1', foodId: 'off_8000500310427', name: 'Kellogg\'s Special K Classic', brand: 'Kellogg\'s', grams: 45, kcal: 379, p: 14.0, c: 76.0, f: 1.5 },
+          { uid: 'init-2', foodId: 'off_8002670100112', name: 'Skyr Bianco Naturale', brand: 'Mila Alto Adige', grams: 150, kcal: 63, p: 11.0, c: 4.0, f: 0.2 },
+        ],
+        lunch: [
+          { uid: 'init-3', foodId: 'f12', name: 'Riso Basmati / Carnaroli (crudo)', brand: 'Alimento Fresco', grams: 90, kcal: 350, p: 7.5, c: 78.0, f: 0.6 },
+          { uid: 'init-4', foodId: 'f1', name: 'Petto di pollo (crudo)', brand: 'Alimento Fresco', grams: 160, kcal: 110, p: 23.1, c: 0, f: 1.2 },
+          { uid: 'init-5', foodId: 'f18', name: 'Olio Extravergine d\'Oliva (EVO)', brand: 'Alimento Fresco', grams: 12, kcal: 899, p: 0, c: 0, f: 99.9 },
+        ],
+        dinner: [],
+        snacks: []
+      }
+    };
+  });
+
+  // --- RECENTI / PREFERITI ---
+  const [savedFoods, setSavedFoods] = useState(() => {
+    const saved = localStorage.getItem('mc_ios_saved_foods_v3');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // --- CONFIGURAZIONE SALVATAGGI (3 LIVELLI) ---
+  const [storageStatus, setStorageStatus] = useState({
+    persisted: false,
+    idbReady: false,
+    lastLocalSave: null,
+    lastFileBackup: localStorage.getItem('mc_ios_last_file_backup') || null,
+    cloudStatus: 'idle', // 'idle' | 'syncing' | 'synced' | 'error'
+    lastCloudSync: localStorage.getItem('mc_ios_last_cloud_sync') || null,
+    cloudError: null
+  });
+
+  // Configurazione Cloud (Supporta sia Cloud Istantaneo con 1 clic sia Supabase privato)
+  const [cloudConfig, setCloudConfig] = useState(() => {
+    const saved = localStorage.getItem('mc_ios_cloud_cfg_v3');
+    return saved ? JSON.parse(saved) : {
+      enabled: false,
+      provider: 'kv_cloud', // 'kv_cloud' (Codice di Sincronizzazione Rapido) oppure 'supabase'
+      syncId: '',
+      supabaseUrl: '',
+      supabaseAnonKey: '',
+      userSyncCode: 'BOLZANO-MACRO-01'
+    };
+  });
+
+  // --- UI STATES ---
+  const [activeTab, setActiveTab] = useState('diary'); // 'diary' | 'search' | 'profile' | 'vault'
+  const [activeModalMeal, setActiveModalMeal] = useState(null);
+  const [modalTab, setModalTab] = useState('online');
+  const [selectedGrams, setSelectedGrams] = useState(100);
+  const [quickTargetMeal, setQuickTargetMeal] = useState('breakfast');
+  const [quickGrams, setQuickGrams] = useState(100);
+
+  // Ricerca Live OpenFoodFacts
+  const [onlineQuery, setOnlineQuery] = useState('');
+  const [onlineResults, setOnlineResults] = useState([]);
+  const [onlineLoading, setOnlineLoading] = useState(false);
+  const [onlineError, setOnlineError] = useState(null);
+  const [countryScope, setCountryScope] = useState('it');
+  const abortControllerRef = useRef(null);
+
+  // Filtro Freschi / Recenti
+  const [localSearch, setLocalSearch] = useState('');
+  const [customFood, setCustomFood] = useState({
+    name: '', brand: '', kcal: '', p: '', c: '', f: '', grams: 100, saveToRecent: true
+  });
+  const [toastMsg, setToastMsg] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3200);
+  };
+
+  // ============================================================================
+  // LIVELLO 1: Inizializzazione Storage Persistente iOS + Ripristino da IndexedDB
+  // ============================================================================
+  useEffect(() => {
+    async function initTier1Protection() {
+      // 1. Richiedi a WebKit / iOS di blindare lo storage contro lo "Storage Pressure"
+      let isPersisted = false;
+      if (navigator.storage && navigator.storage.persist) {
+        try {
+          isPersisted = await navigator.storage.persisted();
+          if (!isPersisted) {
+            isPersisted = await navigator.storage.persist();
+          }
+        } catch (e) {
+          isPersisted = false;
+        }
+      }
+
+      // 2. Verifica IndexedDB e, se il localStorage fosse stato svuotato, ripristina da IDB
+      const idbVault = await loadFromIDB('master_vault_v3');
+      const hasLocalMeals = localStorage.getItem('mc_ios_meals_by_date_v3');
+      if (!hasLocalMeals && idbVault) {
+        if (idbVault.profile) setProfile(idbVault.profile);
+        if (idbVault.mealsByDate) setMealsByDate(idbVault.mealsByDate);
+        if (idbVault.savedFoods) setSavedFoods(idbVault.savedFoods);
+        showToast('Dati ripristinati automaticamente da IndexedDB!');
+      }
+
+      setStorageStatus(prev => ({
+        ...prev,
+        persisted: isPersisted,
+        idbReady: true,
+        lastLocalSave: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+      }));
+    }
+    initTier1Protection();
+  }, []);
+
+  // Salvataggio continuo su LocalStorage + IndexedDB (Livello 1)
+  useEffect(() => {
+    const nowStr = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    localStorage.setItem('mc_ios_profile_v3', JSON.stringify(profile));
+    localStorage.setItem('mc_ios_meals_by_date_v3', JSON.stringify(mealsByDate));
+    localStorage.setItem('mc_ios_saved_foods_v3', JSON.stringify(savedFoods));
+    localStorage.setItem('mc_ios_cloud_cfg_v3', JSON.stringify(cloudConfig));
+
+    saveToIDB('master_vault_v3', {
+      updatedAt: new Date().toISOString(),
+      profile,
+      mealsByDate,
+      savedFoods
+    }).then((ok) => {
+      setStorageStatus(prev => ({ ...prev, idbReady: ok, lastLocalSave: nowStr }));
+    });
+  }, [profile, mealsByDate, savedFoods, cloudConfig]);
+
+  // ============================================================================
+  // LIVELLO 3: Sincronizzazione Automatica Cloud (REST Cloud Vault o Supabase)
+  // ============================================================================
+  const pushToCloud = useCallback(async (manual = false) => {
+    if (!cloudConfig.enabled && !manual) return;
+    setStorageStatus(prev => ({ ...prev, cloudStatus: 'syncing', cloudError: null }));
+
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      profile,
+      mealsByDate,
+      savedFoods
+    };
+
+    try {
+      if (cloudConfig.provider === 'kv_cloud') {
+        // Cloud istantaneo JSONBlob REST API (zero registrazione)
+        if (cloudConfig.syncId) {
+          const res = await fetch(`https://jsonblob.com/api/jsonBlob/${cloudConfig.syncId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error('Codice Cloud non trovato o scaduto.');
+        } else {
+          const res = await fetch('https://jsonblob.com/api/jsonBlob', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error('Impossibile creare il Cloud Vault.');
+          const location = res.headers.get('Location') || res.headers.get('location') || '';
+          const newId = location.split('/').pop();
+          if (newId) {
+            setCloudConfig(prev => ({ ...prev, syncId: newId, enabled: true }));
+          }
+        }
+      } else if (cloudConfig.provider === 'supabase') {
+        if (!cloudConfig.supabaseUrl || !cloudConfig.supabaseAnonKey) {
+          throw new Error('Inserisci URL e Anon Key di Supabase.');
+        }
+        const cleanUrl = cloudConfig.supabaseUrl.replace(/\/$/, '');
+        const res = await fetch(`${cleanUrl}/rest/v1/macro_backups?on_conflict=sync_code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': cloudConfig.supabaseAnonKey,
+            'Authorization': `Bearer ${cloudConfig.supabaseAnonKey}`,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            sync_code: cloudConfig.userSyncCode || 'DEFAULT',
+            payload,
+            updated_at: new Date().toISOString()
+          })
+        });
+        if (!res.ok) throw new Error(`Errore Supabase (${res.status})`);
+      }
+
+      const timeStr = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      localStorage.setItem('mc_ios_last_cloud_sync', timeStr);
+      setStorageStatus(prev => ({ ...prev, cloudStatus: 'synced', lastCloudSync: timeStr, cloudError: null }));
+      if (manual) showToast('Sincronizzazione Cloud completata!');
+    } catch (err) {
+      setStorageStatus(prev => ({ ...prev, cloudStatus: 'error', cloudError: err.message }));
+      if (manual) showToast(`Errore Cloud: ${err.message}`);
+    }
+  }, [cloudConfig, profile, mealsByDate, savedFoods]);
+
+  const pullFromCloud = async () => {
+    setStorageStatus(prev => ({ ...prev, cloudStatus: 'syncing', cloudError: null }));
+    try {
+      let remoteData = null;
+      if (cloudConfig.provider === 'kv_cloud') {
+        if (!cloudConfig.syncId) throw new Error('Inserisci il tuo Codice Cloud ID per scaricare i dati.');
+        const res = await fetch(`https://jsonblob.com/api/jsonBlob/${cloudConfig.syncId}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('Codice Cloud ID non valido o non trovato.');
+        remoteData = await res.json();
+      } else {
+        if (!cloudConfig.supabaseUrl || !cloudConfig.supabaseAnonKey) {
+          throw new Error('Configura URL e Anon Key di Supabase.');
+        }
+        const cleanUrl = cloudConfig.supabaseUrl.replace(/\/$/, '');
+        const res = await fetch(
+          `${cleanUrl}/rest/v1/macro_backups?sync_code=eq.${encodeURIComponent(cloudConfig.userSyncCode)}&select=payload`,
+          {
+            headers: {
+              'apikey': cloudConfig.supabaseAnonKey,
+              'Authorization': `Bearer ${cloudConfig.supabaseAnonKey}`
+            }
+          }
+        );
+        if (!res.ok) throw new Error('Errore lettura da Supabase.');
+        const rows = await res.json();
+        if (!rows.length) throw new Error('Nessun backup trovato per questo codice.');
+        remoteData = rows[0].payload;
+      }
+
+      if (remoteData && remoteData.profile && remoteData.mealsByDate) {
+        setProfile(remoteData.profile);
+        setMealsByDate(remoteData.mealsByDate);
+        if (remoteData.savedFoods) setSavedFoods(remoteData.savedFoods);
+        const timeStr = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        setStorageStatus(prev => ({ ...prev, cloudStatus: 'synced', lastCloudSync: timeStr }));
+        showToast('Dati scaricati e ripristinati dal Cloud!');
+      } else {
+        throw new Error('Formato dati Cloud non valido.');
+      }
+    } catch (err) {
+      setStorageStatus(prev => ({ ...prev, cloudStatus: 'error', cloudError: err.message }));
+      showToast(`Errore: ${err.message}`);
+    }
+  };
+
+  // Auto-sync Cloud con debounce di 2.5 secondi quando cambiano i pasti
+  useEffect(() => {
+    if (!cloudConfig.enabled) return;
+    const t = setTimeout(() => {
+      pushToCloud(false);
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [mealsByDate, profile, savedFoods, cloudConfig.enabled, pushToCloud]);
+
+  // ============================================================================
+  // LIVELLO 2: Backup su File Fisico JSON / Condivisione nativa iCloud Drive iOS
+  // ============================================================================
+  const exportBackupFile = async (useNativeShare = false) => {
+    const backupPayload = {
+      app: 'MacroCalc_Pro_iOS',
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      profile,
+      mealsByDate,
+      savedFoods
+    };
+    const jsonString = JSON.stringify(backupPayload, null, 2);
+    const fileName = `MacroCalc_Backup_${getTodayISO()}.json`;
+
+    // Su iOS Safari / PWA supporta navigator.share con file diretto a "Salva su File (iCloud Drive)"
+    if (useNativeShare && navigator.canShare) {
+      try {
+        const file = new File([jsonString], fileName, { type: 'application/json' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Backup MacroCalc iOS',
+            text: 'Backup completo di pasti, storico e target macronutrienti.',
+            files: [file]
+          });
+          const nowStr = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+          localStorage.setItem('mc_ios_last_file_backup', nowStr);
+          setStorageStatus(prev => ({ ...prev, lastFileBackup: nowStr }));
+          showToast('Salvato tramite menu Condividi iOS!');
+          return;
+        }
+      } catch (e) {
+        // Fallback al download classico
+      }
+    }
+
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const nowStr = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    localStorage.setItem('mc_ios_last_file_backup', nowStr);
+    setStorageStatus(prev => ({ ...prev, lastFileBackup: nowStr }));
+    showToast('File di Backup JSON scaricato!');
+  };
+
+  const importBackupFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.profile) setProfile(data.profile);
+        if (data.mealsByDate) setMealsByDate(data.mealsByDate);
+        if (data.savedFoods) setSavedFoods(data.savedFoods);
+        showToast('Backup ripristinato con successo!');
+      } catch (err) {
+        showToast('Errore: il file selezionato non è un JSON valido.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // ============================================================================
+  // GENERATORE FILE SINGOLO PWA `index.html` PER IPHONE (Per Netlify Drop)
+  // ============================================================================
+  const downloadStandaloneIOSApp = () => {
+    const embeddedState = JSON.stringify({
+      profile,
+      mealsByDate,
+      savedFoods,
+      cloudConfig
+    });
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>MacroCalc iOS</title>
+  <!-- Configurazione Ufficiale Apple iOS Web App (PWA Standalone) -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MacroCalc" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2927/2927347.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 75px);
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body class="text-slate-900">
+  <div id="app" class="max-w-lg mx-auto px-4 pt-3 pb-16"></div>
+  <script>
+    // Pre-caricamento dei dati attuali se il telefono è vergine
+    const INITIAL_SNAPSHOT = ${embeddedState};
+    if (!localStorage.getItem('mc_ios_meals_by_date_v3')) {
+      localStorage.setItem('mc_ios_profile_v3', JSON.stringify(INITIAL_SNAPSHOT.profile));
+      localStorage.setItem('mc_ios_meals_by_date_v3', JSON.stringify(INITIAL_SNAPSHOT.mealsByDate));
+      localStorage.setItem('mc_ios_saved_foods_v3', JSON.stringify(INITIAL_SNAPSHOT.savedFoods));
+      localStorage.setItem('mc_ios_cloud_cfg_v3', JSON.stringify(INITIAL_SNAPSHOT.cloudConfig));
+    }
+
+    // Attivazione immediata Persistenza iOS (Livello 1)
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist();
+    }
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    function StandaloneIOSApp() {
+      const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+      const [profile, setProfile] = useState(() => JSON.parse(localStorage.getItem('mc_ios_profile_v3') || '{}'));
+      const [mealsByDate, setMealsByDate] = useState(() => JSON.parse(localStorage.getItem('mc_ios_meals_by_date_v3') || '{}'));
+      const [cloudCfg, setCloudCfg] = useState(() => JSON.parse(localStorage.getItem('mc_ios_cloud_cfg_v3') || '{"enabled":false,"provider":"kv_cloud","syncId":""}'));
+      const [tab, setTab] = useState('diary');
+      const [query, setQuery] = useState('');
+      const [results, setResults] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [targetMeal, setTargetMeal] = useState('breakfast');
+      const [grams, setGrams] = useState(100);
+      const [statusMsg, setStatusMsg] = useState('');
+
+      useEffect(() => {
+        localStorage.setItem('mc_ios_profile_v3', JSON.stringify(profile));
+        localStorage.setItem('mc_ios_meals_by_date_v3', JSON.stringify(mealsByDate));
+        localStorage.setItem('mc_ios_cloud_cfg_v3', JSON.stringify(cloudCfg));
+      }, [profile, mealsByDate, cloudCfg]);
+
+      useEffect(() => {
+        if (query.trim().length < 2) { setResults([]); return; }
+        const timer = setTimeout(async () => {
+          setLoading(true);
+          try {
+            const url = \`https://it.openfoodfacts.org/cgi/search.pl?search_terms=\${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15\`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const items = (data.products || []).filter(p => p.product_name).map(p => {
+              const n = p.nutriments || {};
+              return {
+                id: p.code || Math.random().toString(),
+                name: p.product_name_it || p.product_name,
+                brand: (p.brands || 'Commerciale').split(',')[0],
+                kcal: Math.round(n['energy-kcal_100g'] || 0),
+                p: Number((n.proteins_100g || 0).toFixed(1)),
+                c: Number((n.carbohydrates_100g || 0).toFixed(1)),
+                f: Number((n.fat_100g || 0).toFixed(1))
+              };
+            });
+            setResults(items);
+          } catch (e) {}
+          setLoading(false);
+        }, 400);
+        return () => clearTimeout(timer);
+      }, [query]);
+
+      const dayMeals = mealsByDate[date] || { breakfast: [], lunch: [], dinner: [], snacks: [] };
+      const allItems = [...dayMeals.breakfast, ...dayMeals.lunch, ...dayMeals.dinner, ...dayMeals.snacks];
+      const totals = allItems.reduce((acc, i) => {
+        const r = i.grams / 100;
+        acc.kcal += i.kcal * r; acc.p += i.p * r; acc.c += i.c * r; acc.f += i.f * r;
+        return acc;
+      }, { kcal: 0, p: 0, c: 0, f: 0 });
+
+      const addFood = (food) => {
+        const nextDay = { ...dayMeals, [targetMeal]: [...(dayMeals[targetMeal] || []), { ...food, uid: Date.now().toString(), grams: Number(grams) || 100 }] };
+        setMealsByDate({ ...mealsByDate, [date]: nextDay });
+        setStatusMsg('Aggiunto: ' + food.name);
+        setTimeout(() => setStatusMsg(''), 2000);
+      };
+
+      const removeFood = (slot, uid) => {
+        const nextDay = { ...dayMeals, [slot]: dayMeals[slot].filter(x => x.uid !== uid) };
+        setMealsByDate({ ...mealsByDate, [date]: nextDay });
+      };
+
+      const syncCloud = async () => {
+        setStatusMsg('Sincronizzazione Cloud in corso...');
+        try {
+          const payload = { profile, mealsByDate, updatedAt: new Date().toISOString() };
+          if (cloudCfg.syncId) {
+            await fetch('https://jsonblob.com/api/jsonBlob/' + cloudCfg.syncId, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+          } else {
+            const res = await fetch('https://jsonblob.com/api/jsonBlob', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            const loc = res.headers.get('Location') || '';
+            const id = loc.split('/').pop();
+            if (id) setCloudCfg({ ...cloudCfg, syncId: id, enabled: true });
+          }
+          setStatusMsg('Sincronizzato sul Cloud!');
+        } catch (e) { setStatusMsg('Errore Cloud'); }
+      };
+
+      const exportFile = () => {
+        const blob = new Blob([JSON.stringify({ profile, mealsByDate }, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'MacroCalc_Backup_' + date + '.json';
+        a.click();
+      };
+
+      return (
+        <div>
+          <header className="bg-slate-900 text-white p-4 rounded-2xl mb-4 shadow-lg flex justify-between items-center">
+            <div>
+              <h1 className="font-bold text-lg">MacroCalc iOS</h1>
+              <p className="text-xs text-slate-400">3-Tier Storage Vault Attivo</p>
+            </div>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg border border-slate-700" />
+          </header>
+
+          {statusMsg && <div className="bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-xl mb-3 text-center">{statusMsg}</div>}
+
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-4 grid grid-cols-4 gap-2 text-center">
+            <div><div className="text-[10px] text-slate-500 uppercase font-bold">Kcal</div><div className="font-extrabold text-base">{Math.round(totals.kcal)}</div></div>
+            <div><div className="text-[10px] text-blue-600 uppercase font-bold">Prot</div><div className="font-extrabold text-base text-blue-600">{Math.round(totals.p)}g</div></div>
+            <div><div className="text-[10px] text-amber-600 uppercase font-bold">Carb</div><div className="font-extrabold text-base text-amber-600">{Math.round(totals.c)}g</div></div>
+            <div><div className="text-[10px] text-rose-600 uppercase font-bold">Grassi</div><div className="font-extrabold text-base text-rose-600">{Math.round(totals.f)}g</div></div>
+          </div>
+
+          {tab === 'diary' && (
+            <div className="space-y-3">
+              {[['breakfast','Colazione'],['lunch','Pranzo'],['dinner','Cena'],['snacks','Spuntini']].map(([k, label]) => (
+                <div key={k} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="font-bold text-sm">{label}</h2>
+                    <button onClick={() => { setTargetMeal(k); setTab('search'); }} className="text-xs bg-emerald-600 text-white font-bold px-2.5 py-1 rounded-lg">+ Aggiungi</button>
+                  </div>
+                  {(dayMeals[k] || []).length === 0 ? <p className="text-xs text-slate-400">Nessun alimento</p> : (
+                    <div className="space-y-1.5">
+                      {dayMeals[k].map(item => (
+                        <div key={item.uid} className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                          <div>
+                            <div className="font-bold">{item.name} <span className="text-slate-400">({item.grams}g)</span></div>
+                            <div className="text-[10px] text-slate-500">{Math.round(item.kcal*item.grams/100)} kcal • P:{(item.p*item.grams/100).toFixed(1)}g C:{(item.c*item.grams/100).toFixed(1)}g F:{(item.f*item.grams/100).toFixed(1)}g</div>
+                          </div>
+                          <button onClick={() => removeFood(k, item.uid)} className="text-rose-500 font-bold px-2">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === 'search' && (
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+              <div className="flex gap-2">
+                <select value={targetMeal} onChange={e => setTargetMeal(e.target.value)} className="text-xs border rounded-xl px-2 py-2 font-bold">
+                  <option value="breakfast">Colazione</option>
+                  <option value="lunch">Pranzo</option>
+                  <option value="dinner">Cena</option>
+                  <option value="snacks">Spuntini</option>
+                </select>
+                <input type="number" value={grams} onChange={e => setGrams(e.target.value)} className="w-20 text-xs border rounded-xl px-2 py-2 font-bold text-center" placeholder="Grammi" />
+              </div>
+              <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Cerca su OpenFoodFacts (es. Kellogg's, Skyr...)" className="w-full text-sm border rounded-xl px-3 py-2.5" />
+              {loading && <p className="text-xs text-slate-500">Ricerca live in corso...</p>}
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {results.map(r => (
+                  <div key={r.id} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border">
+                    <div>
+                      <div className="font-bold text-xs">{r.name}</div>
+                      <div className="text-[10px] text-slate-500">{r.brand} • {r.kcal} kcal/100g (P:{r.p} C:{r.c} F:{r.f})</div>
+                    </div>
+                    <button onClick={() => addFood(r)} className="bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Aggiungi</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tab === 'vault' && (
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+              <h2 className="font-bold text-sm">3 Livelli di Salvataggio iOS</h2>
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                <strong>1. LocalStorage + IndexedDB Persistente:</strong> Attivo.
+              </div>
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs space-y-2">
+                <strong>2. Backup File JSON (iCloud Drive / iPhone):</strong>
+                <div><button onClick={exportFile} className="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg mt-1">Esporta File JSON</button></div>
+              </div>
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs space-y-2">
+                <strong>3. Cloud Sync (Codice ID):</strong>
+                <input type="text" value={cloudCfg.syncId || ''} onChange={e => setCloudCfg({...cloudCfg, syncId: e.target.value})} placeholder="Codice Cloud ID (lascia vuoto per crearne uno)" className="w-full border rounded-lg px-2 py-1.5 text-xs" />
+                <button onClick={syncCloud} className="bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg">Sincronizza Cloud Ora</button>
+              </div>
+            </div>
+          )}
+
+          <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 flex justify-around py-2.5 z-50">
+            <button onClick={() => setTab('diary')} className={\`text-xs font-bold \${tab==='diary'?'text-emerald-600':'text-slate-400'}\`}>Diario</button>
+            <button onClick={() => setTab('search')} className={\`text-xs font-bold \${tab==='search'?'text-emerald-600':'text-slate-400'}\`}>Cerca Online</button>
+            <button onClick={() => setTab('vault')} className={\`text-xs font-bold \${tab==='vault'?'text-emerald-600':'text-slate-400'}\`}>Salvataggi (3)</button>
+          </nav>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('app')).render(<StandaloneIOSApp />);
+  </script>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'index.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('File index.html per iPhone scaricato!');
+  };
+
+  // ============================================================================
+  // RICERCA LIVE OPENFOODFACTS
+  // ============================================================================
+  const searchOpenFoodFacts = useCallback(async (queryText, scope) => {
+    const trimmed = queryText.trim();
+    if (trimmed.length < 2) {
+      setOnlineResults([]);
+      setOnlineError(null);
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setOnlineLoading(true);
+    setOnlineError(null);
+
+    try {
+      const isBarcode = /^\d{8,14}$/.test(trimmed);
+      let products = [];
+
+      if (isBarcode) {
+        const res = await fetch(
+          `https://world.openfoodfacts.org/api/v2/product/${trimmed}.json?fields=code,product_name,product_name_it,brands,nutriments,image_front_small_url,nutriscore_grade,serving_size`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (data && data.status === 1 && data.product) {
+          products = [data.product];
+        }
+      } else {
+        const subdomain = scope === 'it' ? 'it' : 'world';
+        const url = `https://${subdomain}.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(trimmed)}&search_simple=1&action=process&json=1&page_size=24&fields=code,product_name,product_name_it,generic_name_it,brands,nutriments,image_front_small_url,image_small_url,nutriscore_grade,serving_size`;
+        const res = await fetch(url, { signal: controller.signal });
+        const data = await res.json();
+        products = data.products || [];
+
+        if (products.length === 0 && scope === 'it') {
+          const fallbackUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(trimmed)}&search_simple=1&action=process&json=1&page_size=24&fields=code,product_name,product_name_it,generic_name_it,brands,nutriments,image_front_small_url,image_small_url,nutriscore_grade,serving_size`;
+          const fbRes = await fetch(fallbackUrl, { signal: controller.signal });
+          const fbData = await fbRes.json();
+          products = fbData.products || [];
+        }
+      }
+
+      const cleaned = products
+        .map(normalizeOFFProduct)
+        .filter(item => item.name.length > 0 && (item.kcal > 0 || item.p > 0 || item.c > 0 || item.f > 0));
+
+      setOnlineResults(cleaned);
+      if (cleaned.length === 0) {
+        setOnlineError(`Nessun prodotto trovato su OpenFoodFacts per "${trimmed}".`);
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setOnlineError('Errore di connessione a OpenFoodFacts.');
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setOnlineLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (onlineQuery.trim().length < 2) {
+      setOnlineResults([]);
+      setOnlineError(null);
+      setOnlineLoading(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      searchOpenFoodFacts(onlineQuery, countryScope);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [onlineQuery, countryScope, searchOpenFoodFacts]);
+
+  // ============================================================================
+  // CALCOLI BMR, TDEE, TARGET E TOTALI DEL GIORNO SELEZIONATO
+  // ============================================================================
+  const targets = useMemo(() => {
+    const w = Number(profile.weight) || 70;
+    const h = Number(profile.height) || 175;
+    const a = Number(profile.age) || 30;
+    const bmr = Math.round(10 * w + 6.25 * h - 5 * a + (profile.gender === 'male' ? 5 : -161));
+    const tdee = Math.round(bmr * profile.activity);
+
+    let targetKcal = tdee;
+    if (profile.useCustomDiff) {
+      targetKcal = Math.max(1000, tdee + Number(profile.customKcalDiff || 0));
+    } else {
+      const selectedGoal = GOALS.find(g => g.id === profile.goal) || GOALS[2];
+      targetKcal = Math.max(1000, Math.round(tdee * (1 + selectedGoal.modifier)));
+    }
+
+    let targetP = 0, targetC = 0, targetF = 0;
+    if (profile.macroMode === 'pct') {
+      targetP = Math.round((targetKcal * (profile.pctP / 100)) / 4);
+      targetC = Math.round((targetKcal * (profile.pctC / 100)) / 4);
+      targetF = Math.round((targetKcal * (profile.pctF / 100)) / 9);
+    } else {
+      targetP = Math.round(w * profile.gPerKgP);
+      targetF = Math.round(w * profile.gPerKgF);
+      const remainingKcal = Math.max(0, targetKcal - (targetP * 4 + targetF * 9));
+      targetC = Math.round(remainingKcal / 4);
+    }
+
+    return { bmr, tdee, kcal: targetKcal, p: targetP, c: targetC, f: targetF };
+  }, [profile]);
+
+  const currentDayMeals = useMemo(() => {
+    return mealsByDate[selectedDate] || EMPTY_DAY_MEALS;
+  }, [mealsByDate, selectedDate]);
+
+  const consumed = useMemo(() => {
+    let totalKcal = 0, totalP = 0, totalC = 0, totalF = 0;
+    const byMeal = {};
+
+    MEAL_SLOTS.forEach(slot => {
+      let mKcal = 0, mP = 0, mC = 0, mF = 0;
+      (currentDayMeals[slot.id] || []).forEach(item => {
+        const ratio = (Number(item.grams) || 0) / 100;
+        mKcal += item.kcal * ratio;
+        mP += item.p * ratio;
+        mC += item.c * ratio;
+        mF += item.f * ratio;
+      });
+      byMeal[slot.id] = {
+        kcal: Math.round(mKcal),
+        p: Number(mP.toFixed(1)),
+        c: Number(mC.toFixed(1)),
+        f: Number(mF.toFixed(1)),
+      };
+      totalKcal += mKcal;
+      totalP += mP;
+      totalC += mC;
+      totalF += mF;
+    });
+
+    return {
+      kcal: Math.round(totalKcal),
+      p: Math.round(totalP),
+      c: Math.round(totalC),
+      f: Math.round(totalF),
+      byMeal,
+    };
+  }, [currentDayMeals]);
+
+  // ============================================================================
+  // AZIONI PASTI PER DATA
+  // ============================================================================
+  const updateDayMeals = (updater) => {
+    setMealsByDate(prev => {
+      const existing = prev[selectedDate] || EMPTY_DAY_MEALS;
+      const updated = typeof updater === 'function' ? updater(existing) : updater;
+      return { ...prev, [selectedDate]: updated };
+    });
+  };
+
+  const rememberFood = (food) => {
+    setSavedFoods(prev => {
+      const exists = prev.some(f => f.id === food.id || (f.name.toLowerCase() === food.name.toLowerCase() && f.brand === food.brand));
+      if (exists) return prev;
+      return [{ ...food }, ...prev].slice(0, 60);
+    });
+  };
+
+  const addFoodToMeal = (mealId, food, gramsAmount = 100) => {
+    const g = Math.max(1, Number(gramsAmount) || 100);
+    const newItem = {
+      uid: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      foodId: food.id,
+      name: food.name,
+      brand: food.brand || (food.category ? food.category : 'Alimento'),
+      grams: g,
+      kcal: Number(food.kcal),
+      p: Number(food.p),
+      c: Number(food.c),
+      f: Number(food.f),
+      image: food.image || null,
+    };
+    updateDayMeals(prev => ({
+      ...prev,
+      [mealId]: [...(prev[mealId] || []), newItem],
+    }));
+    if (food.isOnline) {
+      rememberFood(food);
+    }
+    showToast(`Aggiunto a ${MEAL_SLOTS.find(m => m.id === mealId)?.label}: ${food.name}`);
+  };
+
+  const updateFoodGrams = (mealId, uid, newGrams) => {
+    const val = Math.max(0, Number(newGrams) || 0);
+    updateDayMeals(prev => ({
+      ...prev,
+      [mealId]: prev[mealId].map(item => item.uid === uid ? { ...item, grams: val } : item),
+    }));
+  };
+
+  const removeFoodFromMeal = (mealId, uid) => {
+    updateDayMeals(prev => ({
+      ...prev,
+      [mealId]: prev[mealId].filter(item => item.uid !== uid),
+    }));
+  };
+
+  const shiftDate = (days) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + days);
+    setSelectedDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleAddCustomFood = (e) => {
+    e.preventDefault();
+    if (!customFood.name.trim() || !customFood.kcal) return;
+    const newFoodObj = {
+      id: `custom-${Date.now()}`,
+      name: customFood.name.trim(),
+      brand: customFood.brand.trim() || 'Personalizzato',
+      category: 'Personalizzati',
+      kcal: Number(customFood.kcal) || 0,
+      p: Number(customFood.p) || 0,
+      c: Number(customFood.c) || 0,
+      f: Number(customFood.f) || 0,
+      isOnline: true,
+    };
+    if (customFood.saveToRecent) {
+      rememberFood(newFoodObj);
+    }
+    const target = activeModalMeal || quickTargetMeal;
+    addFoodToMeal(target, newFoodObj, Number(customFood.grams) || 100);
+    setCustomFood({ name: '', brand: '', kcal: '', p: '', c: '', f: '', grams: 100, saveToRecent: true });
+    setActiveModalMeal(null);
+  };
+
+  const filteredFreshFoods = useMemo(() => {
+    const q = localSearch.trim().toLowerCase();
+    if (!q) return FRESH_BASE_FOODS;
+    return FRESH_BASE_FOODS.filter(f => f.name.toLowerCase().includes(q) || f.category.toLowerCase().includes(q));
+  }, [localSearch]);
+
+  const filteredSavedFoods = useMemo(() => {
+    const q = localSearch.trim().toLowerCase();
+    if (!q) return savedFoods;
+    return savedFoods.filter(f => f.name.toLowerCase().includes(q) || (f.brand && f.brand.toLowerCase().includes(q)));
+  }, [savedFoods, localSearch]);
+
+  const getPct = (val, max) => (max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0);
+  const kcalDiff = targets.kcal - consumed.kcal;
+
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-900 pb-24 font-sans">
+      {/* NOTIFICA TOAST STILE iOS */}
+      {toastMsg && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white px-4 py-2.5 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2 text-xs font-bold animate-bounce">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* HEADER STILE iOS + STATO SALVATAGGI A 3 LIVELLI */}
+      <header className="bg-slate-900 text-white sticky top-0 z-30 border-b border-slate-800 shadow-md">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Smartphone className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-extrabold tracking-tight">MacroCalc iOS</h1>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  PWA + 3-Tier Vault
+                </span>
+              </div>
+              {/* Indicatori in tempo reale dei 3 livelli di salvataggio */}
+              <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-400">
+                <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
+                  <HardDrive className="w-3 h-3" />
+                  L1: {storageStatus.idbReady ? 'IDB+Local Attivo' : 'Local Attivo'}
+                </span>
+                <span>•</span>
+                <button
+                  onClick={() => exportBackupFile(true)}
+                  className="inline-flex items-center gap-1 hover:text-white underline decoration-dotted"
+                  title="Salva subito su File / iCloud Drive"
+                >
+                  <Download className="w-3 h-3 text-blue-400" />
+                  L2: {storageStatus.lastFileBackup ? `Backup ${storageStatus.lastFileBackup}` : 'Salva su iPhone'}
+                </button>
+                <span>•</span>
+                <button
+                  onClick={() => setActiveTab('vault')}
+                  className="inline-flex items-center gap-1 hover:text-white"
+                >
+                  {cloudConfig.enabled ? (
+                    <Cloud className="w-3 h-3 text-indigo-400" />
+                  ) : (
+                    <CloudOff className="w-3 h-3 text-slate-500" />
+                  )}
+                  <span className={cloudConfig.enabled ? 'text-indigo-300 font-medium' : ''}>
+                    L3: {cloudConfig.enabled ? (storageStatus.cloudStatus === 'syncing' ? 'Sync...' : 'Cloud ON') : 'Cloud Config'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Pulsante Download Diretto App iOS index.html */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadStandaloneIOSApp}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-sm"
+            >
+              <FileDown className="w-4 h-4" />
+              <span>Scarica App iOS (index.html)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* BARRA CALENDARIO GIORNALIERO */}
+        <div className="bg-slate-800/80 border-t border-slate-800 px-4 py-2">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <button
+              onClick={() => shiftDate(-1)}
+              className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-300 flex items-center gap-1 text-xs font-medium"
+            >
+              <ChevronLeft className="w-4 h-4" /> Giorno Prec.
+            </button>
+
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-500"
+              />
+              {selectedDate !== getTodayISO() && (
+                <button
+                  onClick={() => setSelectedDate(getTodayISO())}
+                  className="text-[11px] font-bold text-emerald-400 hover:underline"
+                >
+                  Torna a Oggi
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => shiftDate(1)}
+              className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-300 flex items-center gap-1 text-xs font-medium"
+            >
+              Giorno Succ. <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-4 pt-5 space-y-5">
+        {/* RIEPILOGO MACRO COMPATTO SEMPRE VISIBILE (STILE WIDGET iOS) */}
+        <section className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Calorie */}
+            <div className="bg-slate-900 text-white p-3.5 rounded-2xl flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Calorie ({selectedDate})</span>
+                <Flame className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="my-1 flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold">{consumed.kcal}</span>
+                <span className="text-xs text-slate-400">/ {targets.kcal} kcal</span>
+              </div>
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${kcalDiff < 0 ? 'bg-rose-500' : 'bg-emerald-400'}`}
+                  style={{ width: `${getPct(consumed.kcal, targets.kcal)}%` }}
+                />
+              </div>
+              <div className="mt-1.5 text-[11px] text-slate-300 flex justify-between">
+                <span>{kcalDiff >= 0 ? 'Rimanenti:' : 'Surplus:'}</span>
+                <span className="font-bold">{Math.abs(kcalDiff)} kcal</span>
+              </div>
+            </div>
+
+            {/* Proteine */}
+            <div className="bg-blue-50/60 border border-blue-100 p-3.5 rounded-2xl flex flex-col justify-between">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-bold uppercase text-blue-700">Proteine</span>
+                <span className="text-[11px] font-bold text-blue-600">{getPct(consumed.p, targets.p)}%</span>
+              </div>
+              <div className="my-1 flex items-baseline gap-1">
+                <span className="text-xl font-extrabold text-slate-900">{consumed.p}g</span>
+                <span className="text-xs text-slate-500">/ {targets.p}g</span>
+              </div>
+              <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${getPct(consumed.p, targets.p)}%` }} />
+              </div>
+              <span className="mt-1.5 text-[11px] text-slate-500">
+                {targets.p - consumed.p >= 0 ? `Mancano ${targets.p - consumed.p}g` : `+${consumed.p - targets.p}g oltre`}
+              </span>
+            </div>
+
+            {/* Carboidrati */}
+            <div className="bg-amber-50/60 border border-amber-100 p-3.5 rounded-2xl flex flex-col justify-between">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-bold uppercase text-amber-700">Carboidrati</span>
+                <span className="text-[11px] font-bold text-amber-600">{getPct(consumed.c, targets.c)}%</span>
+              </div>
+              <div className="my-1 flex items-baseline gap-1">
+                <span className="text-xl font-extrabold text-slate-900">{consumed.c}g</span>
+                <span className="text-xs text-slate-500">/ {targets.c}g</span>
+              </div>
+              <div className="w-full h-2 bg-amber-100 rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${getPct(consumed.c, targets.c)}%` }} />
+              </div>
+              <span className="mt-1.5 text-[11px] text-slate-500">
+                {targets.c - consumed.c >= 0 ? `Mancano ${targets.c - consumed.c}g` : `+${consumed.c - targets.c}g oltre`}
+              </span>
+            </div>
+
+            {/* Grassi */}
+            <div className="bg-rose-50/60 border border-rose-100 p-3.5 rounded-2xl flex flex-col justify-between">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-bold uppercase text-rose-700">Grassi</span>
+                <span className="text-[11px] font-bold text-rose-600">{getPct(consumed.f, targets.f)}%</span>
+              </div>
+              <div className="my-1 flex items-baseline gap-1">
+                <span className="text-xl font-extrabold text-slate-900">{consumed.f}g</span>
+                <span className="text-xs text-slate-500">/ {targets.f}g</span>
+              </div>
+              <div className="w-full h-2 bg-rose-100 rounded-full overflow-hidden">
+                <div className="h-full bg-rose-500 rounded-full transition-all" style={{ width: `${getPct(consumed.f, targets.f)}%` }} />
+              </div>
+              <span className="mt-1.5 text-[11px] text-slate-500">
+                {targets.f - consumed.f >= 0 ? `Mancano ${targets.f - consumed.f}g` : `+${consumed.f - targets.f}g oltre`}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================================
+            TAB 1: DIARIO PASTI GIORNALIERO
+        ===================================================================== */}
+        {activeTab === 'diary' && (
+          <div className="space-y-4">
+            {/* Barra di ricerca rapida OpenFoodFacts sempre a portata di dito */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-500/30">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-bold text-slate-800">Ricerca Diretta Supermercato (OpenFoodFacts Live)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={quickTargetMeal}
+                    onChange={(e) => setQuickTargetMeal(e.target.value)}
+                    className="px-2.5 py-1 text-xs font-bold bg-slate-100 border border-slate-200 rounded-lg text-slate-800"
+                  >
+                    {MEAL_SLOTS.map(s => (
+                      <option key={s.id} value={s.id}>in {s.label}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+                    <input
+                      type="number"
+                      value={quickGrams}
+                      onChange={(e) => setQuickGrams(Math.max(1, Number(e.target.value) || 0))}
+                      className="w-12 text-xs font-bold text-center bg-transparent focus:outline-none"
+                    />
+                    <span className="text-[11px] text-slate-500 font-bold">g</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={onlineQuery}
+                  onChange={(e) => setOnlineQuery(e.target.value)}
+                  placeholder="Scrivi marca, cereali o codice a barre (es. Kellogg's, Skyr Mila, Gocciole, Loacker)..."
+                  className="w-full pl-10 pr-20 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                />
+                {onlineQuery && (
+                  <button
+                    onClick={() => { setOnlineQuery(''); setOnlineResults([]); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+                  >
+                    Pulisci
+                  </button>
+                )}
+              </div>
+
+              {onlineLoading && (
+                <div className="py-4 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                  Ricerca sul database OpenFoodFacts...
+                </div>
+              )}
+
+              {!onlineLoading && onlineResults.length > 0 && (
+                <div className="mt-3 max-h-64 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl bg-slate-50/50">
+                  {onlineResults.map(food => {
+                    const ratio = (Number(quickGrams) || 100) / 100;
+                    return (
+                      <div key={food.id} className="p-2.5 flex items-center justify-between gap-3 hover:bg-white transition">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {food.image ? (
+                            <img src={food.image} alt={food.name} className="w-10 h-10 rounded-lg object-contain bg-white border p-0.5 shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
+                              <Barcode className="w-4 h-4 text-slate-500" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-900 truncate">{food.name}</div>
+                            <div className="text-[11px] text-slate-500">
+                              <span className="font-semibold text-emerald-700">{food.brand}</span> • Per {quickGrams}g:{' '}
+                              <strong>{Math.round(food.kcal * ratio)} kcal</strong> (P:{(food.p * ratio).toFixed(1)}g C:{(food.c * ratio).toFixed(1)}g F:{(food.f * ratio).toFixed(1)}g)
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => addFoodToMeal(quickTargetMeal, food, quickGrams)}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0"
+                        >
+                          + Aggiungi
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 4 SLOT PASTI */}
+            {MEAL_SLOTS.map(slot => {
+              const Icon = slot.icon;
+              const items = currentDayMeals[slot.id] || [];
+              const stats = consumed.byMeal[slot.id] || { kcal: 0, p: 0, c: 0, f: 0 };
+
+              return (
+                <div key={slot.id} className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                  <div className="p-4 bg-slate-50/70 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl ${slot.bg} ${slot.border} border flex items-center justify-center`}>
+                        <Icon className={`w-5 h-5 ${slot.color}`} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm sm:text-base">{slot.label}</h3>
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <span className="font-bold text-slate-700">{stats.kcal} kcal</span>
+                          <span>•</span>
+                          <span className="text-blue-600 font-medium">P: {stats.p}g</span>
+                          <span className="text-amber-600 font-medium">C: {stats.c}g</span>
+                          <span className="text-rose-600 font-medium">F: {stats.f}g</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setActiveModalMeal(slot.id);
+                        setModalTab('online');
+                        setSelectedGrams(100);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Aggiungi Alimento</span>
+                    </button>
+                  </div>
+
+                  {items.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-400">
+                      Nessun alimento registrato in {slot.label.toLowerCase()}.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {items.map(item => {
+                        const r = (Number(item.grams) || 0) / 100;
+                        return (
+                          <div key={item.uid} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-50/70">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-800 text-sm truncate">{item.name}</span>
+                                {item.brand && (
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md shrink-0">
+                                    {item.brand}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                <span className="font-bold text-slate-900">{Math.round(item.kcal * r)} kcal</span>
+                                <span>•</span>
+                                <span className="text-blue-600 font-medium">P: {(item.p * r).toFixed(1)}g</span>
+                                <span className="text-amber-600 font-medium">C: {(item.c * r).toFixed(1)}g</span>
+                                <span className="text-rose-600 font-medium">F: {(item.f * r).toFixed(1)}g</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-center">
+                              <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
+                                <button
+                                  onClick={() => updateFoodGrams(slot.id, item.uid, Math.max(0, item.grams - 10))}
+                                  className="w-6 h-6 rounded-lg hover:bg-white text-slate-600 font-bold text-xs"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  value={item.grams}
+                                  onChange={(e) => updateFoodGrams(slot.id, item.uid, e.target.value)}
+                                  className="w-12 text-center bg-transparent text-xs font-bold text-slate-800 focus:outline-none"
+                                />
+                                <span className="text-[10px] font-semibold text-slate-400 pr-1">g</span>
+                                <button
+                                  onClick={() => updateFoodGrams(slot.id, item.uid, item.grams + 10)}
+                                  className="w-6 h-6 rounded-lg hover:bg-white text-slate-600 font-bold text-xs"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => removeFoodFromMeal(slot.id, item.uid)}
+                                className="p-2 text-slate-400 hover:text-rose-600 rounded-xl"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* =====================================================================
+            TAB 2: IMPOSTAZIONE TARGET & TDEE
+        ===================================================================== */}
+        {activeTab === 'profile' && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-5">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+              <Calculator className="w-5 h-5 text-emerald-600" />
+              <h2 className="font-bold text-slate-900 text-base">Calcolatore TDEE & Target Macronutrienti</h2>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Sesso</label>
+                <select
+                  value={profile.gender}
+                  onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                >
+                  <option value="male">Uomo</option>
+                  <option value="female">Donna</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Età (anni)</label>
+                <input
+                  type="number"
+                  value={profile.age}
+                  onChange={(e) => setProfile({ ...profile, age: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Peso (kg)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={profile.weight}
+                  onChange={(e) => setProfile({ ...profile, weight: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Altezza (cm)</label>
+                <input
+                  type="number"
+                  value={profile.height}
+                  onChange={(e) => setProfile({ ...profile, height: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Livello di Attività Fisica</label>
+                <select
+                  value={profile.activity}
+                  onChange={(e) => setProfile({ ...profile, activity: Number(e.target.value) })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                >
+                  {ACTIVITY_LEVELS.map(l => (
+                    <option key={l.value} value={l.value}>{l.label} ({l.desc})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Obiettivo Calorico</label>
+                <select
+                  value={profile.goal}
+                  onChange={(e) => setProfile({ ...profile, goal: e.target.value, useCustomDiff: false })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                >
+                  {GOALS.map(g => (
+                    <option key={g.id} value={g.id}>{g.label} ({g.desc})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 text-white p-4 rounded-2xl flex flex-wrap justify-around gap-4 text-center">
+              <div>
+                <span className="text-[11px] text-slate-400 uppercase font-bold">Metabolismo Basale (BMR)</span>
+                <div className="text-xl font-extrabold text-white">{targets.bmr} kcal</div>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-400 uppercase font-bold">Mantenimento (TDEE)</span>
+                <div className="text-xl font-extrabold text-emerald-400">{targets.tdee} kcal</div>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-400 uppercase font-bold">Target Giornaliero</span>
+                <div className="text-xl font-extrabold text-amber-400">{targets.kcal} kcal</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =====================================================================
+            TAB 3: CENTRO SALVATAGGI A 3 LIVELLI & GUIDA INSTALLAZIONE iOS
+        ===================================================================== */}
+        {activeTab === 'vault' && (
+          <div className="space-y-5">
+            {/* Banner Scarica index.html per iPhone */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-5 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                  <Smartphone className="w-4 h-4" /> Web App Nativa iOS (PWA Standalone)
+                </div>
+                <h2 className="text-lg font-extrabold">Installa sulla Schermata Home del tuo iPhone</h2>
+                <p className="text-xs text-slate-300 max-w-xl">
+                  Scarica il file singolo <code className="bg-slate-700 px-1.5 py-0.5 rounded">index.html</code> (include già i tuoi dati attuali e i 3 livelli di salvataggio) e trascinalo su <strong>app.netlify.com/drop</strong> per ottenere il tuo link personale da aggiungere alla Home di iOS.
+                </p>
+              </div>
+              <button
+                onClick={downloadStandaloneIOSApp}
+                className="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center gap-2 shrink-0 shadow-lg"
+              >
+                <FileDown className="w-4 h-4" />
+                Scarica index.html per iPhone
+              </button>
+            </div>
+
+            {/* I 3 LIVELLI DI SALVATAGGIO */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* LIVELLO 1: LocalStorage + IndexedDB Persistente */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      Livello 1 • Locale Blindato
+                    </span>
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base">LocalStorage + IndexedDB</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Salva istantaneamente ogni modifica sia in <code className="bg-slate-100 px-1 rounded">localStorage</code> sia nel database asincrono <code className="bg-slate-100 px-1 rounded">IndexedDB</code> richiedendo a WebKit iOS il flag <code className="bg-slate-100 px-1 rounded">navigator.storage.persist()</code>.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Motore IndexedDB:</span>
+                    <span className="font-bold text-emerald-600">{storageStatus.idbReady ? 'Attivo e Sincronizzato' : 'Attivo'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Protezione iOS Persist():</span>
+                    <span className="font-bold text-slate-800">{storageStatus.persisted ? 'Blindato (Non eliminabile)' : 'Richiesto al browser'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Ultimo salvataggio:</span>
+                    <span className="font-bold text-slate-800">{storageStatus.lastLocalSave || 'Adesso'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* LIVELLO 2: File JSON Fisico su iPhone / iCloud Drive */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                      Livello 2 • File Fisico / iCloud
+                    </span>
+                    <HardDrive className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base">Backup su File / iCloud Drive</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Esporta tutti i tuoi pasti, lo storico del calendario e i target in un file <code className="bg-slate-100 px-1 rounded">.json</code> direttamente nell'app <strong>File / iCloud Drive</strong> del tuo iPhone. Impossibile da cancellare per Safari.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => exportBackupFile(true)}
+                      className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      Salva su iPhone
+                    </button>
+                    <button
+                      onClick={() => exportBackupFile(false)}
+                      className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Scarica .JSON
+                    </button>
+                  </div>
+
+                  <label className="w-full py-2.5 px-3 rounded-xl border border-dashed border-slate-300 hover:border-blue-500 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition">
+                    <Upload className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Importa / Ripristina da File JSON</span>
+                    <input type="file" accept=".json" onChange={importBackupFile} className="hidden" />
+                  </label>
+                </div>
+              </div>
+
+              {/* LIVELLO 3: Cloud Sync in Tempo Reale */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+                      Livello 3 • Cloud Sync
+                    </span>
+                    <Cloud className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base">Sincronizzazione Cloud</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Sincronizza automaticamente in background i tuoi pasti sul Cloud. Puoi usare il <strong>Cloud Rapido (1-Click con Codice ID)</strong> oppure inserire le tue chiavi <strong>Supabase</strong>.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                    <button
+                      onClick={() => setCloudConfig({ ...cloudConfig, provider: 'kv_cloud' })}
+                      className={`flex-1 py-1.5 rounded-lg font-bold transition ${cloudConfig.provider === 'kv_cloud' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-600'}`}
+                    >
+                      Cloud Rapido (Zero Account)
+                    </button>
+                    <button
+                      onClick={() => setCloudConfig({ ...cloudConfig, provider: 'supabase' })}
+                      className={`flex-1 py-1.5 rounded-lg font-bold transition ${cloudConfig.provider === 'supabase' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-600'}`}
+                    >
+                      Supabase DB
+                    </button>
+                  </div>
+
+                  {cloudConfig.provider === 'kv_cloud' ? (
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-slate-600">
+                        Il tuo Codice Cloud ID (conservalo o incollalo su un altro dispositivo):
+                      </label>
+                      <input
+                        type="text"
+                        value={cloudConfig.syncId}
+                        onChange={(e) => setCloudConfig({ ...cloudConfig, syncId: e.target.value.trim() })}
+                        placeholder="Lascia vuoto e premi 'Attiva/Salva Cloud' per generarlo"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <input
+                        type="text"
+                        value={cloudConfig.supabaseUrl}
+                        onChange={(e) => setCloudConfig({ ...cloudConfig, supabaseUrl: e.target.value.trim() })}
+                        placeholder="Supabase Project URL (https://xxx.supabase.co)"
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                      />
+                      <input
+                        type="password"
+                        value={cloudConfig.supabaseAnonKey}
+                        onChange={(e) => setCloudConfig({ ...cloudConfig, supabaseAnonKey: e.target.value.trim() })}
+                        placeholder="Supabase Anon Public Key"
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                      />
+                      <input
+                        type="text"
+                        value={cloudConfig.userSyncCode}
+                        onChange={(e) => setCloudConfig({ ...cloudConfig, userSyncCode: e.target.value.trim() })}
+                        placeholder="Identificativo personale (es. BOLZANO-01)"
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono"
+                      />
+                    </div>
+                  )}
+
+                  {storageStatus.cloudError && (
+                    <div className="text-[11px] text-rose-600 font-semibold">{storageStatus.cloudError}</div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => pushToCloud(true)}
+                      className="py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1"
+                    >
+                      <Cloud className="w-3.5 h-3.5" />
+                      Salva su Cloud
+                    </button>
+                    <button
+                      onClick={pullFromCloud}
+                      className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Scarica da Cloud
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* =====================================================================
+          MODALE AGGIUNTA ALIMENTO (ONLINE / RECENTI / CREA MANUALE)
+      ===================================================================== */}
+      {activeModalMeal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Utensils className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-bold text-sm">
+                  Aggiungi a {MEAL_SLOTS.find(s => s.id === activeModalMeal)?.label}
+                </h3>
+              </div>
+              <button onClick={() => setActiveModalMeal(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex border-b border-slate-200 bg-slate-50">
+              <button
+                onClick={() => setModalTab('online')}
+                className={`flex-1 py-3 text-xs font-bold border-b-2 ${modalTab === 'online' ? 'border-emerald-600 text-emerald-700 bg-white' : 'border-transparent text-slate-500'}`}
+              >
+                🌍 Cerca Online (OpenFoodFacts)
+              </button>
+              <button
+                onClick={() => setModalTab('fresh')}
+                className={`flex-1 py-3 text-xs font-bold border-b-2 ${modalTab === 'fresh' ? 'border-emerald-600 text-emerald-700 bg-white' : 'border-transparent text-slate-500'}`}
+              >
+                🥩 Alimenti Freschi & Recenti ({savedFoods.length + FRESH_BASE_FOODS.length})
+              </button>
+              <button
+                onClick={() => setModalTab('custom')}
+                className={`flex-1 py-3 text-xs font-bold border-b-2 ${modalTab === 'custom' ? 'border-emerald-600 text-emerald-700 bg-white' : 'border-transparent text-slate-500'}`}
+              >
+                ➕ Crea Etichetta
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1 space-y-4">
+              {modalTab !== 'custom' && (
+                <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-xl border border-slate-200">
+                  <span className="text-xs font-bold text-slate-700">Quantità da inserire (grammi):</span>
+                  <div className="flex items-center gap-1.5">
+                    {[30, 50, 100, 150, 200].map(w => (
+                      <button
+                        key={w}
+                        onClick={() => setSelectedGrams(w)}
+                        className={`px-2 py-1 rounded-lg text-xs font-bold ${selectedGrams === w ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600'}`}
+                      >
+                        {w}g
+                      </button>
+                    ))}
+                    <input
+                      type="number"
+                      value={selectedGrams}
+                      onChange={(e) => setSelectedGrams(Math.max(1, Number(e.target.value) || 0))}
+                      className="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-xs font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {modalTab === 'online' && (
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={onlineQuery}
+                    onChange={(e) => setOnlineQuery(e.target.value)}
+                    placeholder="Cerca marca o prodotto (es. Kellogg's Extra, Skyr Mila, Barilla)..."
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                    autoFocus
+                  />
+                  {onlineLoading && (
+                    <div className="py-6 text-center text-xs text-slate-500">Interrogazione OpenFoodFacts in corso...</div>
+                  )}
+                  <div className="space-y-2">
+                    {onlineResults.map(food => {
+                      const r = selectedGrams / 100;
+                      return (
+                        <div key={food.id} className="p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-3 hover:border-emerald-400">
+                          <div>
+                            <div className="font-bold text-xs text-slate-900">{food.name}</div>
+                            <div className="text-[11px] text-slate-500">
+                              <span className="text-emerald-700 font-semibold">{food.brand}</span> • Per {selectedGrams}g: <strong>{Math.round(food.kcal * r)} kcal</strong> (P:{(food.p * r).toFixed(1)}g C:{(food.c * r).toFixed(1)}g F:{(food.f * r).toFixed(1)}g)
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              addFoodToMeal(activeModalMeal, food, selectedGrams);
+                              setActiveModalMeal(null);
+                            }}
+                            className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shrink-0"
+                          >
+                            + Aggiungi
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {modalTab === 'fresh' && (
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={localSearch}
+                    onChange={(e) => setLocalSearch(e.target.value)}
+                    placeholder="Filtra tra i tuoi recenti o gli alimenti freschi (es. pollo, riso, speck, mela)..."
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  />
+                  {filteredSavedFoods.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="text-[11px] font-bold uppercase text-emerald-700">Prodotti Commerciali Recenti</div>
+                      {filteredSavedFoods.map(food => (
+                        <div key={food.id} className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/30 flex justify-between items-center">
+                          <div>
+                            <div className="text-xs font-bold">{food.name}</div>
+                            <div className="text-[11px] text-slate-500">{food.brand} • {food.kcal} kcal/100g</div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              addFoodToMeal(activeModalMeal, food, selectedGrams);
+                              setActiveModalMeal(null);
+                            }}
+                            className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold"
+                          >
+                            + Aggiungi
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] font-bold uppercase text-slate-500">Alimenti Freschi Base</div>
+                    {filteredFreshFoods.map(food => (
+                      <div key={food.id} className="p-2.5 rounded-xl border border-slate-200 flex justify-between items-center">
+                        <div>
+                          <div className="text-xs font-bold">{food.name}</div>
+                          <div className="text-[11px] text-slate-500">{food.kcal} kcal/100g • P:{food.p}g C:{food.c}g F:{food.f}g</div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            addFoodToMeal(activeModalMeal, food, selectedGrams);
+                            setActiveModalMeal(null);
+                          }}
+                          className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
+                        >
+                          + Aggiungi
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {modalTab === 'custom' && (
+                <form onSubmit={handleAddCustomFood} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nome alimento"
+                      value={customFood.name}
+                      onChange={(e) => setCustomFood({ ...customFood, name: e.target.value })}
+                      className="px-3 py-2 border rounded-xl text-xs"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Marca (opzionale)"
+                      value={customFood.brand}
+                      onChange={(e) => setCustomFood({ ...customFood, brand: e.target.value })}
+                      className="px-3 py-2 border rounded-xl text-xs"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <input
+                      type="number"
+                      required
+                      placeholder="Kcal/100g"
+                      value={customFood.kcal}
+                      onChange={(e) => setCustomFood({ ...customFood, kcal: e.target.value })}
+                      className="px-2.5 py-2 border rounded-xl text-xs"
+                    />
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="Prot (g)"
+                      value={customFood.p}
+                      onChange={(e) => setCustomFood({ ...customFood, p: e.target.value })}
+                      className="px-2.5 py-2 border rounded-xl text-xs"
+                    />
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="Carb (g)"
+                      value={customFood.c}
+                      onChange={(e) => setCustomFood({ ...customFood, c: e.target.value })}
+                      className="px-2.5 py-2 border rounded-xl text-xs"
+                    />
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="Grassi (g)"
+                      value={customFood.f}
+                      onChange={(e) => setCustomFood({ ...customFood, f: e.target.value })}
+                      className="px-2.5 py-2 border rounded-xl text-xs"
+                    />
+                  </div>
+                  <button type="submit" className="w-full py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs">
+                    Salva e Aggiungi al Pasto
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BARRA DI NAVIGAZIONE INFERIORE STILE iOS (TAB BAR) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40">
+        <div className="max-w-lg mx-auto grid grid-cols-3 py-2">
+          <button
+            onClick={() => setActiveTab('diary')}
+            className={`flex flex-col items-center gap-1 py-1 text-xs font-bold transition ${activeTab === 'diary' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-700'}`}
+          >
+            <Utensils className="w-5 h-5" />
+            <span>Diario & Ricerca</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex flex-col items-center gap-1 py-1 text-xs font-bold transition ${activeTab === 'profile' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-700'}`}
+          >
+            <Calculator className="w-5 h-5" />
+            <span>TDEE & Target</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('vault')}
+            className={`flex flex-col items-center gap-1 py-1 text-xs font-bold transition ${activeTab === 'vault' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-700'}`}
+          >
+            <ShieldCheck className="w-5 h-5" />
+            <span>Salvataggi (3 Liv.)</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  );
+}
